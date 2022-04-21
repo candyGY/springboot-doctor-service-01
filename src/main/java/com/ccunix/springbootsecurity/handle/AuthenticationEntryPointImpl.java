@@ -1,4 +1,5 @@
 package com.ccunix.springbootsecurity.handle;
+import com.ccunix.springbootsecurity.utils.ServletUtils;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
+ * 认证失败处理类 返回未授权
  * Date:  2022/4/13
  * Time:  11:01
  * @description
@@ -20,27 +22,6 @@ public class AuthenticationEntryPointImpl implements AuthenticationEntryPoint, S
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         String url = request.getRequestURI();
         String errMsg = "请求访问：{"+url+"}，认证失败，无法访问系统资源";
-        renderString(response,errMsg);
-    }
-
-    /**
-     * 将字符串渲染到客户端
-     *
-     * @param response 渲染对象
-     * @param string 待渲染的字符串
-     */
-    public void renderString(HttpServletResponse response, String string)
-    {
-        try
-        {
-            response.setStatus(200);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("utf-8");
-            response.getWriter().print(string);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        ServletUtils.renderString(response,errMsg);
     }
 }

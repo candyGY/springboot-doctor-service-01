@@ -19,11 +19,11 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class TokenService {
-    //令牌的失效时间
+    // 令牌有效期（默认30分钟）
     @Value("${token.expireTime}")
     private int expireTime;
 
-    //令牌密钥
+    // 令牌秘钥
     @Value("${token.secret}")
     private String secret;
 
@@ -35,57 +35,63 @@ public class TokenService {
 
     protected static final long MILLIS_MINUTE = 60 * MILLIS_SECOND;
 
-    private static final long MILLIS_MINUTE_TEN = 20 * 60 * 1000L;
+    private static final Long MILLIS_MINUTE_TEN = 20 * 60 * 1000L;
 
     @Autowired
     RedisCache redisCache;
 
     /**
      * 创建令牌
-     * */
-    public String createToken(LoginUser loginUser) {
-        //不重复的字符串uuid 推荐分布式
+     *
+     * @param loginUser 用户信息
+     * @return 令牌
+     */
+    public String createToken(LoginUser loginUser)
+    {
+        // 不重复的字符串uuid 推荐分布式
         String token = IdUtils.fastUUID();
-        System.out.println("uuid生成的token"+token);
-        //刷新用户信息 完成单点登录
+        System.out.println("uuid token="+token);
         loginUser.setToken(token);
+        // 刷新用户信息   单点登录   admin     admin  存储redis
         refreshToken(loginUser);
-        //存储d获得的token信息
+        // 存储d获得的token信息
         Map<String, Object> claims = new HashMap<>();
-        //令牌前缀Login_user_key LOGIN_USER_KEY
-        claims.put("login_user_key", token);
+        // 令牌前缀login_user_key  LOGIN_USER_KEY
+        claims.put(Constants.LOGIN_USER_KEY,token);
         return createToken(claims);
     }
-
     /**
      * 从数据声明生成令牌
-     * */
-    private String createToken(Map<String,Object> claims){
+     *
+     * @param claims 数据声明
+     * @return 令牌
+     */
+    private String createToken(Map<String, Object> claims)
+    {
         String token = Jwts.builder()
                 .setClaims(claims)
                 .signWith(SignatureAlgorithm.HS512, secret).compact();
         return token;
     }
-
     /**
-     * 刷新令牌的有效期
-     * */
-    public void refreshToken(LoginUser loginUser){
+     * 刷新令牌有效期
+     *
+     * @param loginUser 登录信息
+     */
+    public void refreshToken(LoginUser loginUser)
+    {
         loginUser.setLoginTime(System.currentTimeMillis());
         loginUser.setExpireTime(loginUser.getLoginTime() + expireTime * MILLIS_MINUTE);
-        //根据uuid的LoginUser缓存 把用户信息缓存起来
+        // 根据uuid将loginUser缓存   把用户信息缓存起来key:  login_tokens:fdsfdsfdstrtrtrtret
         String userKey = getTokenKey(loginUser.getToken());
         redisCache.setCacheObject(userKey, loginUser, expireTime, TimeUnit.MINUTES);
     }
-
-    /**
-     * 获得令牌的key
-     * */
-    private String getTokenKey(String uuid){
-        //LOGIN_TOKEN_KEY
-        return Constants.LOGIN_TOKEN_KEY +uuid;
+    // 获得令牌的key
+    private String getTokenKey(String uuid)
+    {
+        // LOGIN_TOKEN_KEY  login_tokens
+        return Constants.LOGIN_TOKEN_KEY + uuid;
     }
-
     /**
      * 获取请求token
      *
@@ -106,13 +112,8 @@ public class TokenService {
         }
         return token;
     }
-
     /**
      * 从令牌中获取数据声明
-     *
-     * .setSigningKey(secret)  密钥
-     * .parseClaimsJws(token)  令牌
-     * .getBody();             claims
      *
      * @param token 令牌
      * @return 数据声明
@@ -124,7 +125,6 @@ public class TokenService {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
     /**
      *  获得登录用户   携带令牌
      *  key:Authorization
@@ -165,6 +165,18 @@ public class TokenService {
         if (expireTime - currentTime <= MILLIS_MINUTE_TEN)
         {
             refreshToken(loginUser);
+        }
+    }
+
+    /**
+     * 删除用户身份信息
+     */
+    public void delLoginUser(String token)
+    {
+        if (StringUtils.isNotEmpty(token))
+        {
+            String userKey = getTokenKey(token);
+            redisCache.deleteObject(userKey);
         }
     }
 }

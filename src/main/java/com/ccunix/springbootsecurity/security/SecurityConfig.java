@@ -1,5 +1,6 @@
 package com.ccunix.springbootsecurity.security;
 
+import com.ccunix.springbootsecurity.handle.LogoutSuccessHandlerImpl;
 import com.ccunix.springbootsecurity.security.filter.JwtAuthenticationTokenFilter;
 import com.ccunix.springbootsecurity.handle.AuthenticationEntryPointImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,24 +14,35 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * @description
  */
 @EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+    /**
+     * 退出处理类
+     */
+    @Autowired
+    private LogoutSuccessHandlerImpl logoutSuccessHandler;
+
     /**
      * token认证过滤器  如果认证成功  就可以放行该请求   访问权限    控制器配置访问权限
      */
+
     @Autowired
     private JwtAuthenticationTokenFilter authenticationTokenFilter;
     /**
      * 认证失败处理类
      */
+
     @Autowired
     private AuthenticationEntryPointImpl unauthorizedHandler;
     /**
      * 解决 无法直接注入 AuthenticationManager
+     *
      * @return
      * @throws Exception
      */
@@ -65,8 +77,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 // 过滤请求
                 .authorizeRequests()
-                // 对于登录login 注册register 验证码captchaImage 允许匿名访问
-                .antMatchers("/login", "/register").anonymous()
+                // 对于登录login 注册register 验证码captchaImage 只允许匿名访问，不能存在登录信息
+                //.antMatchers("/login", "/register").anonymous()
+                .antMatchers("/login", "/register").permitAll()
                 .antMatchers(
                         HttpMethod.GET,
                         "/",
@@ -85,6 +98,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().authenticated()
                 .and()
                 .headers().frameOptions().disable();
+        // 添加JWT filter
+        httpSecurity.addFilterBefore(authenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
+        // 注销用户
+        httpSecurity.logout().logoutUrl("/logout").logoutSuccessHandler(logoutSuccessHandler);
     }
     /**
      * 自定义用户认证逻辑

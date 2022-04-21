@@ -24,6 +24,7 @@ public class UserLoginService {
     TokenService tokenService;
 
     /**
+     *
      * @param username 用户输入的用户名
      * @param password 已经输入的密码
      * @return
@@ -36,12 +37,12 @@ public class UserLoginService {
         {
             // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
             authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(username, password));
+                    .authenticate(new UsernamePasswordAuthenticationToken(username, password));
         }catch (Exception e)
         {
             if (e instanceof BadCredentialsException)
             {
-                throw new UserPasswordNotMatchException("用户名/密码错误");
+                throw new UserPasswordNotMatchException();
             }
             else
             {
@@ -53,9 +54,9 @@ public class UserLoginService {
         System.out.println(authentication.getPrincipal());
         // 获得loadUserByUsername方法返回的UserDetails
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
-        //LoginUser信息进行加密处理
+        // loginUser信息进行加密处理   jwt生成的token
         String token = tokenService.createToken(loginUser);
-        System.out.println("jwt生成的令牌token=" + token);
+        System.out.println("jwt生成的令牌 token="+token);
         return token;
     }
 }

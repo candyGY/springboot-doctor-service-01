@@ -2,8 +2,6 @@ package com.ccunix.springbootsecurity.utils.uuid;
 
 /**
  * ID生成器工具类
- *
- * @author 魏建波
  */
 public class IdUtils
 {
